@@ -1,0 +1,77 @@
+# =============================================================================
+# Autonomous Video Engine — .gitignore
+# =============================================================================
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.pyo
+
+# ── Virtual Environments ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Environment Variables ─────────────────────────────────────────────────────
+.env
+*.env
+!.env.example
+
+# ── Runtime State & User Settings ────────────────────────────────────────────
+ave_gui_settings.json
+
+# ── Database ──────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Output Artefacts ─────────────────────────────────────────────────────────
+outputs/
+outputs_old/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── Browser Profiles Cache ────────────────────────────────────────────────────
+profiles/
+
+# ── Media Assets (personal / generated) ──────────────────────────────────────
+assets/cakes/
+assets/cakes_real/
+assets/characters/
+assets/outputs/
+assets/*.txt
+
+# ── Testing & Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
+
+# ── MyPy ─────────────────────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+build/
+dist/
+*.egg-info/
+*.egg
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
