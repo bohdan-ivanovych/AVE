@@ -45,7 +45,7 @@ The system became the core proprietary asset behind a successful channel exit.
 
 - **Zero-Touch Post-Production** — `MontageService` (MoviePy 2.x) handles multi-clip concatenation, audio mixing (0–200% volume, mute, trim/loop/fit modes), and renders in a background thread with live progress callbacks to the GUI.
 
-- **Rich Desktop UI** — Modular CustomTkinter app: Apple-inspired dark mode, 8 tabbed views (Dashboard, Pairing, Qwen, Outpaint, Montage, Login, Prompt Library, Settings), real-time progress bars, structured JSON log viewer, and Windows toast notifications.
+- **Rich Desktop UI** — Modular CustomTkinter app: Apple-inspired pure-black dark mode with iOS blue accents, smooth hover animations, 9 tabbed views, real-time progress bars, structured JSON log viewer, and Windows toast notifications.
 
 ---
 
@@ -55,7 +55,7 @@ The system became the core proprietary asset behind a successful channel exit.
 |------|-----------|
 | Core & Concurrency | Python 3.10+, `asyncio`, `multiprocessing` |
 | Browser Automation | Playwright (persistent contexts, stealth flags) |
-| UI Framework | CustomTkinter |
+| UI Framework | CustomTkinter (Apple dark-mode aesthetic) |
 | Video Processing | MoviePy 2.x |
 | Data Validation | Pydantic v2 |
 | Database | SQLite, `aiosqlite` |
@@ -64,52 +64,11 @@ The system became the core proprietary asset behind a successful channel exit.
 
 ---
 
-## Architecture Overview
-
-```
-AVE/
-├── main.py                  # Entry point
-├── core.py                  # Sync automation core (Playwright sync API)
-├── config.yaml              # Centralised configuration
-│
-├── src/
-│   ├── config.py            # Pydantic AppConfig with env-var substitution
-│   ├── dto.py               # Typed DTOs: GenerationTask, BatchJob, ImagePair …
-│   ├── exceptions.py        # Typed exception hierarchy
-│   │
-│   ├── gui/                 # One module per UI tab
-│   │   ├── app.py           # Root CustomTkinter shell & asyncio bridge
-│   │   ├── dashboard.py     # Real-time stats & quick actions
-│   │   ├── pairing.py       # Drag-and-drop pairing (~200 KB, largest component)
-│   │   ├── montage_view.py  # Video timeline & audio mixing UI
-│   │   └── …               # qwen_view, outpaint_view, prompt_library_view …
-│   │
-│   ├── services/            # Business logic
-│   │   ├── browser_service.py     # Core Sora automation (~1 400 lines, async)
-│   │   ├── batch_service.py       # Semaphore-based task orchestrator
-│   │   ├── browser_pool.py        # BrowserContext cache with idle-eviction
-│   │   ├── montage_service.py     # Background MoviePy renderer
-│   │   └── …               # qwen, outpaint, history, prompt_library, auth …
-│   │
-│   ├── adapters/
-│   │   └── legacy_core.py   # Adapter: sync core → new async architecture
-│   │
-│   └── utils/
-│       ├── path_utils.py    # Path sanitisation helpers
-│       ├── name_utils.py    # Media filename parsing
-│       └── retry.py         # Exponential-backoff decorator
-```
-
-For a deep dive into every architectural decision see **[architecture.md](architecture.md)**.
-
----
-
 ## Prerequisites
 
 - **Windows 10 / 11** (win10toast and Chrome profile paths are Windows-specific)
 - **Python 3.10+**
-- **Google Chrome** installed with at least one profile that is already logged in to [Sora](https://sora.chatgpt.com)
-- **Playwright browsers** — installed automatically on first run
+- **Google Chrome** installed (accounts will be set up via Login Mode on first run)
 
 ---
 
@@ -117,8 +76,8 @@ For a deep dive into every architectural decision see **[architecture.md](archit
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/autonomous-video-engine.git
-cd autonomous-video-engine/AVE
+git clone https://github.com/bohdan-ivanovych/AVE.git
+cd AVE
 
 # 2. Create and activate a virtual environment
 python -m venv .venv
@@ -129,16 +88,13 @@ pip install -r requirements.txt
 
 # 4. Install Playwright browser binaries
 playwright install chromium
-
-# 5. (Optional) Install dev dependencies
-pip install -r requirements-dev.txt
 ```
 
 ---
 
 ## Configuration
 
-Copy `.env.example` to `.env` and set your Chrome profile path:
+Copy `.env.example` to `.env` and set your Chrome User Data path:
 
 ```bash
 copy .env.example .env
@@ -149,48 +105,182 @@ copy .env.example .env
 CHROME_BASE_PATH=C:\Users\YourUser\AppData\Local\Google\Chrome\User Data
 ```
 
-Alternatively, edit `config.yaml` directly — all tuneable parameters live there:
+Or edit `config.yaml` directly — all parameters live there:
 
 ```yaml
-sora:
-  url: "https://sora.chatgpt.com/library"
-  notification_timeout_seconds: 240   # max wait per generation
-
 batch:
-  max_concurrent_tasks: 12            # total task slots
-  max_parallel_browsers: 6           # simultaneous Chrome windows
+  max_concurrent_tasks: 12   # total async task slots
+  max_parallel_browsers: 6   # simultaneous Chrome windows
 
 browser:
-  enable_stealth: true                # disable automation fingerprints
+  enable_stealth: true        # strip automation fingerprints
 ```
-
-> **First-time login:** On the first run, open the *Login* tab and use *Login Mode* to complete a manual sign-in for each Chrome profile. AVE will reuse the stored session on every subsequent run.
 
 ---
 
-## Quickstart
+## Workflow
+
+AVE covers the full production cycle across 9 views.
+**Always start with Login Mode** — it is the prerequisite for all generation features.
+
+---
+
+### Step 0 — Login Mode *(required once per profile)*
+
+> **Tab: 🔐 Login Mode**
+
+Click **Start Login**. For each Chrome profile AVE opens a single browser window with **3 tabs in parallel**:
+
+| Tab | Service | Purpose |
+|-----|---------|---------|
+| 1 | **Sora** (`sora.chatgpt.com`) | AI video generation |
+| 2 | **Outpaint / Pixelcut** (`pixelcut.ai`) | Image outpainting |
+| 3 | **Qwen** (`chat.qwen.ai`) | Alternative video model |
+
+Log into all three manually, then click **Next Profile** to advance. Repeat until all profiles are authenticated. AVE reuses the saved Chrome sessions on every subsequent run — this step is only needed once per profile.
+
+---
+
+### Step 1 — Set Up & Configure
+
+> **Tab: ⚙️ Settings**
+
+Configure active Chrome profiles, concurrency limits (`max_parallel_browsers`, `max_concurrent_tasks`), timeouts, and output directories. Changes propagate to running services without a restart.
+
+---
+
+### Step 2 — Sora Generation (image-pair → video)
+
+> **Tab: 🤝 Pairing**
+
+The core Sora generation pipeline:
+
+1. **Drag-and-drop** subject images (Subjects) and reference images (References) into the pairing UI.
+2. Configure pairs: **Manual**, **Sequential Auto**, or **Random Auto** pairing modes.
+3. Select a prompt from the **🧾 Prompt Library** or type one directly.
+4. Choose the profiles to use and click **Generate**.
+
+`BatchService` distributes tasks across Chrome profiles concurrently. For each task:
+- Navigates to Sora, uploads 1–4 reference images.
+- Injects the prompt via native React setter.
+- Polls for completion with the three-strategy detector.
+- Auto-downloads generated `.webp` variants to `outputs/`.
+
+---
+
+### Step 3 — Qwen Video Generation
+
+> **Tab: 🎬 Qwen Video**
+
+Alternative generation pipeline targeting [Qwen](https://chat.qwen.ai/). Upload assets, configure parameters, and dispatch a batch. Operates through the same `BatchService` / `BrowserPool` infrastructure as Sora but with Qwen-specific DOM interaction logic (`QwenService`).
+
+---
+
+### Step 4 — Outpaint
+
+> **Tab: 🖌️ Outpaint**
+
+Batch outpainting via [Pixelcut AI](https://www.pixelcut.ai/uncrop/ai-outpainting). Select images, configure aspect ratio targets, and run. `OutpaintService` handles browser automation end-to-end.
+
+---
+
+### Step 5 — Video Montage (post-production)
+
+> **Tab: 🎞️ Video Montage**
+
+Combine generated clips into a final video:
+
+1. Load clips — drag-and-drop or file picker.
+2. Order them on the timeline.
+3. Add background audio with per-track controls:
+   - Volume: 0–200%
+   - Mute original audio toggle
+   - Trim / Loop / Fit modes
+4. Click **Render** — `MontageService` runs MoviePy in a background thread with a live progress bar.
+
+---
+
+### Utilities
+
+| Tab | Purpose |
+|-----|---------|
+| **🏠 Dashboard** | Real-time stats (profiles, subjects, references, outputs), quick-action buttons, recent history with success-rate badges |
+| **🧾 Prompt Library** | SQLite-backed prompt store with tag search and favourites — prompts are shared across all generation tabs |
+| **📜 Logs** | Live structured log viewer (JSON, rotated 10 × 10 MB files) |
+
+---
+
+## Running
 
 ```bash
-# Windows — double-click or run from terminal:
+# One-click launcher (installs deps automatically if missing)
 run.bat
 
-# Or directly:
+# Or directly
 python main.py
 ```
 
-The GUI will launch. Typical workflow:
+---
 
-1. **Pairing tab** — drag in your subject and reference images, configure pairs.
-2. **Prompt Library tab** — select or create a generation prompt.
-3. **Settings tab** — choose active Chrome profiles and concurrency limits.
-4. **Pairing tab → Generate** — watch the batch run and progress bars fill.
-5. **Montage tab** — select generated clips, add audio, click *Render*.
+## Architecture Overview
+
+```
+AVE/
+├── main.py                  # Entry point — config, logger, GUI bootstrap
+├── core.py                  # Sync automation core (Playwright sync API)
+├── config.yaml              # Centralised configuration
+│
+├── src/
+│   ├── config.py            # Pydantic AppConfig + env-var substitution
+│   ├── dto.py               # Typed DTOs: GenerationTask, BatchJob, ImagePair …
+│   ├── exceptions.py        # Typed exception hierarchy
+│   │
+│   ├── gui/                 # One module per view
+│   │   ├── app.py           # Root CTk shell, sidebar, asyncio↔Tkinter bridge
+│   │   ├── dashboard.py     # Stats + quick actions + history
+│   │   ├── login.py         # Sequential multi-profile login (Sora+Outpaint+Qwen)
+│   │   ├── pairing.py       # Drag-and-drop pairing + Sora batch dispatch (~200 KB)
+│   │   ├── qwen_view.py     # Qwen Video generation UI
+│   │   ├── outpaint_view.py # Outpaint / Pixelcut UI
+│   │   ├── montage_view.py  # Video timeline + audio mixing UI
+│   │   ├── prompt_library_view.py  # Tag-based prompt management
+│   │   ├── settings.py      # Live config editor
+│   │   └── logs.py          # Structured log viewer
+│   │
+│   ├── services/            # Business logic
+│   │   ├── browser_service.py      # Core Sora automation (~1 400 lines, async)
+│   │   ├── batch_service.py        # Semaphore-based task orchestrator
+│   │   ├── browser_pool.py         # BrowserContext cache, idle-eviction, lock safety
+│   │   ├── qwen_service.py         # Qwen Video full automation
+│   │   ├── outpaint_service.py     # Pixelcut outpaint automation
+│   │   ├── montage_service.py      # Background MoviePy renderer
+│   │   ├── history_service.py      # SQLite operation history
+│   │   ├── prompt_library.py       # SQLite prompt store
+│   │   ├── auth_service.py         # Cookie / session management
+│   │   ├── notification_service.py # Windows toast dispatcher
+│   │   └── logger.py               # structlog JSON configuration
+│   │
+│   ├── adapters/
+│   │   └── legacy_core.py   # Thin adapter: sync core → async architecture
+│   │
+│   └── utils/
+│       ├── path_utils.py    # Path sanitisation helpers
+│       ├── name_utils.py    # Media filename parsing
+│       └── retry.py         # Exponential-backoff decorator
+│
+└── tests/
+    └── unit/
+        └── test_image_service.py
+```
+
+For a deep-dive into every architectural decision see **[architecture.md](architecture.md)**.
 
 ---
 
 ## Running Tests
 
 ```bash
+pip install -r requirements-dev.txt
 pytest
 ```
 
@@ -198,52 +288,7 @@ Coverage report is generated in `htmlcov/` and `coverage.xml`.
 
 ---
 
-## Project Structure (detail)
-
-```
-AVE/
-├── .env.example             # Environment variable documentation
-├── .gitignore
-├── .pre-commit-config.yaml  # black + ruff + isort + mypy hooks
-├── LICENSE
-├── README.md
-├── architecture.md          # In-depth architecture doc
-├── config.yaml              # Runtime configuration
-├── main.py                  # Entry point
-├── core.py                  # Sync Playwright automation core
-├── profiles.py              # Chrome profile discovery & validation
-├── utils.py                 # Shared logging helpers
-├── requirements.txt
-├── requirements-dev.txt
-├── mypy.ini
-├── pytest.ini
-├── run.bat                  # One-click Windows launcher
-│
-├── src/
-│   ├── config.py
-│   ├── dto.py
-│   ├── exceptions.py
-│   ├── adapters/legacy_core.py
-│   ├── gui/           (app, dashboard, pairing, montage_view, …)
-│   ├── services/      (browser_service, batch_service, browser_pool, …)
-│   └── utils/         (path_utils, name_utils, retry)
-│
-├── assets/
-│   ├── subjects/      # Subject reference images (not committed)
-│   └── references/    # Style/scene reference images (not committed)
-│
-├── outputs/           # Generated media — gitignored
-├── logs/              # Rotating structlog output — gitignored
-└── tests/
-    └── unit/
-        └── test_image_service.py
-```
-
----
-
 ## Contributing
-
-Pull requests are welcome. Please:
 
 1. Run `pre-commit install` after cloning.
 2. Ensure `ruff`, `black`, and `mypy` pass before opening a PR.
@@ -253,4 +298,4 @@ Pull requests are welcome. Please:
 
 ## License
 
-[MIT](LICENSE) © 2025 Bohdan
+[MIT](LICENSE) © 2025 Bohdan Ivanovych

@@ -26,36 +26,58 @@ Key design goals:
 
 ## 3. User Flow
 
-The application covers the full production cycle from asset loading to final rendered montage.
+The application covers the full production cycle from authentication to final rendered montage.
+**Login Mode must be completed first** — it is the prerequisite for all generation features.
 
-### Stage 1 — Setup & Initialisation
+### Stage 0 — Login Mode *(one-time setup per profile)*
 
-1. **Launch & Auth** — The app auto-discovers local Chrome persistent contexts and populates available profiles. On first run the user completes a one-time manual login per profile via *Login Mode*; subsequent launches reuse the stored session (bypassing API rate limits).
-2. **Reference Control** — In the **Pairing** tab the user drag-and-drops subject and reference images. Visual fidelity and character consistency across generations is maintained by anchoring each task to specific reference pairs.
-3. **Mode Selection** — Manual pairing, Auto Pairing (Sequential / Random), or full Batch Mode for large queues.
+Click **Start Login**. For each Chrome profile AVE opens a single browser window with **3 tabs in parallel**, navigating simultaneously to:
 
-### Stage 2 — Generation (Sora / Qwen / Outpaint)
+- **Sora** (`sora.chatgpt.com/library`) — AI video generation
+- **Outpaint / Pixelcut** (`pixelcut.ai/uncrop/ai-outpainting`) — image outpainting
+- **Qwen** (`chat.qwen.ai`) — alternative video model
 
-1. **Parameter Setup** — Prompts are selected from the built-in Prompt Library or entered manually. Browser profiles are assigned to tasks.
-2. **Queue Dispatch** — Clicking *Generate* pushes tasks into the async queue (`BatchService`).
-3. **Stealth Execution**
-   - Tasks are distributed across Chrome profiles (default: 6 parallel browsers, up to 12 concurrent task slots).
-   - For each task: navigate to Sora, upload 1–4 reference images, inject the prompt directly into React state via a native setter, click *Create*.
-   - A three-strategy completion detector polls for the generated result.
-4. **Auto-Download** — Completed variants are saved to `outputs/` automatically.
+The user logs into all three manually, then clicks **Next Profile**. The process repeats until every configured Chrome profile is authenticated. AVE reuses the saved session cookies on all subsequent runs.
 
-### Stage 3 — Post-Production (Video Montage)
+### Stage 1 — Setup & Configuration
 
-1. **Clip Assembly** — In the **Montage** tab the user selects generated clips and orders them on a timeline.
-2. **Audio Mixing** — Background music is added with per-track volume control (0–200%), mute toggle, and fit/loop/trim modes.
-3. **Render** — `MontageService` (MoviePy 2.x) concatenates and mixes everything in a background thread with live progress callbacks to the GUI.
+1. **Settings tab** — configure active Chrome profiles, concurrency limits, timeouts, and output directories. Changes propagate without a restart.
+2. **Prompt Library tab** — create and tag reusable prompts shared across all generation pipelines.
 
-### Stage 4 — Monitoring & Analytics
+### Stage 2 — Sora Generation
 
-- Real-time statistics on the **Dashboard**.
-- Windows toast notifications on task completion, batch completion, and errors.
-- All operations logged to a rotating structured log (10 × 10 MB files via `structlog`).
-- Full operation history stored in SQLite for success-rate tracking.
+> **Tab: Pairing**
+
+1. **Reference Control** — drag-and-drop subject and reference images. Visual fidelity and character consistency are maintained by anchoring each task to specific reference pairs.
+2. **Mode Selection** — Manual pairing, Sequential Auto, or Random Auto for large queues.
+3. **Queue Dispatch** — clicking *Generate* pushes tasks into `BatchService`.
+4. **Stealth Execution** — tasks are distributed across Chrome profiles (default: 6 parallel browsers / 12 task slots). For each: navigate to Sora → upload 1–4 images → inject prompt via native React setter → click Create → poll for completion → auto-download to `outputs/`.
+
+### Stage 3 — Qwen Video Generation
+
+> **Tab: Qwen Video**
+
+Alternative generation pipeline via [Qwen](https://chat.qwen.ai). Same `BatchService` / `BrowserPool` infrastructure; `QwenService` handles Qwen-specific DOM interaction.
+
+### Stage 4 — Outpaint
+
+> **Tab: Outpaint**
+
+Batch image outpainting via [Pixelcut AI](https://pixelcut.ai). `OutpaintService` handles browser automation end-to-end.
+
+### Stage 5 — Video Montage (Post-Production)
+
+> **Tab: Video Montage**
+
+1. Load generated clips, order them on the timeline.
+2. Add background music — per-track volume (0–200%), mute, trim/loop/fit modes.
+3. Click *Render* — `MontageService` (MoviePy 2.x) concatenates and mixes in a background thread with live progress callbacks to the GUI.
+
+### Utilities
+
+- **Dashboard** — real-time stats (profiles, subjects, references, outputs), quick-action buttons, session history with success-rate badges.
+- **Logs** — live structured log viewer (JSON, rotating 10 × 10 MB files via `structlog`).
+- **History Service** — all operations logged to SQLite for success-rate tracking.
 
 ---
 
