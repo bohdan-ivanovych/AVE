@@ -29,6 +29,13 @@ The system became the core proprietary asset behind a successful channel exit.
 | Daily labour reduced | **6.5 h → 30 min (−92%)** |
 | Outcome | Core asset of a successful channel acquisition |
 
+<table>
+<tr>
+<td><img src="docs/37m_views.jpg" alt="37M organic views" width="420"/><br/><sub>37M+ organic views across the channel</sub></td>
+<td><img src="docs/10m_views.jpg" alt="10M views in 48h" width="420"/><br/><sub>10M views on a single video in 48 hours</sub></td>
+</tr>
+</table>
+
 ---
 
 ## Engineering Highlights
@@ -45,7 +52,9 @@ The system became the core proprietary asset behind a successful channel exit.
 
 - **Zero-Touch Post-Production** — `MontageService` (MoviePy 2.x) handles multi-clip concatenation, audio mixing (0–200% volume, mute, trim/loop/fit modes), and renders in a background thread with live progress callbacks to the GUI.
 
-- **Rich Desktop UI** — Modular CustomTkinter app: Apple-inspired pure-black dark mode with iOS blue accents, smooth hover animations, 9 tabbed views, real-time progress bars, structured JSON log viewer, and Windows toast notifications.
+- **Rich Desktop UI** — Modular CustomTkinter app: 9 tabbed views, real-time progress bars, structured JSON log viewer, and Windows toast notifications.
+
+<img src="docs/ui_montage.jpg" alt="AVE Studio interface" width="860"/>
 
 ---
 
